@@ -4,13 +4,20 @@
 #include <memory.h>
 #include <ncurses.h>
 #include <cdk.h>
+#define PCRE2_CODE_UNIT_WIDTH 8
+#include <pcre2.h>
 #include "util.h"
 
 #define min_width            40
 #define min_height           20
 #define form_height          4
 #define max_file_count       256
-#define max_str_len          300
+
+/**
+ * 256 + 32, multiple of 16 for stack alignment
+ * 256 is the max file name length in linux
+ */ 
+#define max_str_len          288  
 
 struct {
     int width;
@@ -18,7 +25,6 @@ struct {
     int y;
     int x;
 } list_rect, out_rect, form_rect;
-
 
 WINDOW *list_win;
 int file_count = 0;
@@ -30,12 +36,17 @@ int offset_y = 0;
 WINDOW *out_win;
 char outstr[max_file_count][max_str_len];
 char *out_items[max_file_count];
+bool out_err[max_file_count];
+
+bool mat_err = false;
+char sub_buf[max_str_len];
 
 WINDOW *create_wnd(int height, int width, int y, int x);
 void fill_filenames();
+void match(const char* subject);
 void fill_outitems();
 void do_scroll(int ch);
-void draw_scroll(WINDOW *wnd, int offset_x, int offset_y, char **items);
+void draw_scroll(WINDOW *wnd, int offset_x, int offset_y, char **items, bool *errs);
 
 WINDOW *form_win;
 CDKSCREEN *form_cdk;
@@ -88,17 +99,19 @@ int main() {
     form_rect.width = width;
     form_rect.height = form_height;
 
-    // create windows with borders
+    // initialize windows, sequence is important
     list_win = create_wnd(list_rect.height, list_rect.width, list_rect.y, list_rect.x);
     out_win = create_wnd(out_rect.height, out_rect.width, out_rect.y, out_rect.x);
-    fill_filenames();
-    fill_outitems();
+    init_pair(16, COLOR_RED, -1); // error color
 
     init_form();
     init_focus();
 
-    draw_scroll(list_win, offset_x, offset_y, list_items);
-    draw_scroll(out_win, offset_x, offset_y, out_items);
+    fill_filenames();
+    fill_outitems();
+
+    draw_scroll(list_win, offset_x, offset_y, list_items, NULL);
+    draw_scroll(out_win, offset_x, offset_y, out_items, NULL);
 
     int ch = 0;
     while(true) {
@@ -126,19 +139,19 @@ int main() {
 
         if (focus == (void*) list_win) {
             do_scroll(ch);
-            draw_scroll(list_win, offset_x, offset_y, list_items);
-            draw_scroll(out_win, offset_x, offset_y, out_items);
+            draw_scroll(list_win, offset_x, offset_y, list_items, NULL);
+            draw_scroll(out_win, offset_x, offset_y, out_items, out_err);
             wmove(list_win, 0, 0);
             wrefresh(list_win);
         } else if (focus == (void*) pat_entry) {
             injectCDKEntry(pat_entry, ch);
             fill_outitems();
-            draw_scroll(out_win, offset_x, offset_y, out_items);
+            draw_scroll(out_win, offset_x, offset_y, out_items, out_err);
             drawCDKEntry(pat_entry, FALSE); // redraw entry to update cursor position
         } else if (focus == (void*) rep_entry) {
             injectCDKEntry(rep_entry, ch);
             fill_outitems();
-            draw_scroll(out_win, offset_x, offset_y, out_items);
+            draw_scroll(out_win, offset_x, offset_y, out_items, out_err);
             drawCDKEntry(rep_entry, FALSE); // redraw entry to update cursor position
         } else if (focus == (void*) ftr_btn) {
             injectCDKButtonbox(ftr_btn, ch);
@@ -174,12 +187,84 @@ void fill_filenames() {
     }
 }
 
+void match(const char* subject) {
+    
+    pcre2_code *re;
+    const char* pattern = getCDKEntryValue(pat_entry);
+    const char* replace = getCDKEntryValue(rep_entry);
+
+    int errnumber = 0, erroffset = 0;
+    re = pcre2_compile(
+        (PCRE2_SPTR)pattern, 
+        PCRE2_ZERO_TERMINATED, 
+        0, 
+        &errnumber, 
+        &erroffset, 
+        NULL
+    );
+
+    if (re == NULL) {
+        mat_err = true;
+        pcre2_get_error_message(errnumber, sub_buf, max_str_len);
+        return;
+    }
+
+    pcre2_match_data *match_data;
+    match_data = pcre2_match_data_create_from_pattern(re, NULL);
+    int rc = 0;
+    rc = pcre2_match(
+        re, 
+        (PCRE2_SPTR)subject, 
+        PCRE2_ZERO_TERMINATED, 
+        0, 
+        0, 
+        match_data, 
+        NULL
+    );
+
+    if (rc < 0) {
+        mat_err = true;
+        if (rc == PCRE2_ERROR_NOMATCH) {
+            strcpy(sub_buf, "No match");
+        } else {
+            char buf[max_str_len];
+            pcre2_get_error_message(rc, buf, max_str_len);
+            snprintf(sub_buf, max_str_len, "Matching error: %s", buf);
+        }
+    } else {
+        mat_err = false;
+        int len = max_str_len;
+        errnumber = pcre2_substitute(
+            re,
+            subject,
+            PCRE2_ZERO_TERMINATED, 0, // length, start offset
+            0,                        // options
+            NULL, NULL,               // match data block, context
+            replace,
+            PCRE2_ZERO_TERMINATED,
+            sub_buf, &len                 // output buffer, output length
+        );
+
+        if (errnumber < 0) {
+            mat_err = true;
+            char buf[max_str_len];
+            pcre2_get_error_message(errnumber, buf, max_str_len);
+            snprintf(sub_buf, max_str_len, "error: %s", buf);
+        }
+    }
+
+    pcre2_match_data_free(match_data);
+    pcre2_code_free(re);
+}
+
 void fill_outitems() {
     // TODO: apply regex replace to filenames
     // here we just copy filenames
 
     for(int i = 0; i < file_count; i++) {
-        sprintf(outstr[i], "out %s", filenames[i]);
+        match(filenames[i]);
+        out_err[i] = mat_err;
+        strncpy(outstr[i], sub_buf, max_str_len);
         out_items[i] = outstr[i];
     }
 }
@@ -212,7 +297,7 @@ void do_scroll(int ch) {
 }
 
 
-void draw_scroll(WINDOW *wnd, int offset_x, int offset_y,  char **items) {
+void draw_scroll(WINDOW *wnd, int offset_x, int offset_y,  char **items, bool *errs) {
     wclear(wnd);
     box(wnd, 0, 0);
 
@@ -239,7 +324,13 @@ void draw_scroll(WINDOW *wnd, int offset_x, int offset_y,  char **items) {
             items[i] + dx
         );
 
+        if(errs != NULL && errs[i]) {
+            wattron(wnd, COLOR_PAIR(16));
+        }
         mvwaddnstr(wnd, i + offset_y + 1, 1, buf, width);
+        if(errs != NULL && errs[i]) {
+            wattroff(wnd, COLOR_PAIR(16));
+        }
     }
 
     // draw status line
