@@ -4,12 +4,13 @@
 #include <memory.h>
 #include <ncurses.h>
 #include <cdk.h>
+#include "util.h"
 
-const int min_width = 80;
-const int min_height = 20;
-const int form_height = 4;
-const int max_file_count = 256;
-const int max_filename_length = 256;
+#define min_width            40
+#define min_height           20
+#define form_height          4
+#define max_file_count       256
+#define max_str_len          300
 
 struct {
     int width;
@@ -18,48 +19,47 @@ struct {
     int x;
 } list_rect, out_rect, form_rect;
 
-WINDOW *form_win;
 
 WINDOW *list_win;
-CDKSCREEN *list_cdk;
-CDKSCROLL *list_cdk_scroll;
 int file_count = 0;
-char filenames[max_file_count][max_filename_length];
-// char **list_items;
+char filenames[max_file_count][max_str_len];
 char *list_items[max_file_count];
-const int list_win_bypass[] = {
-    KEY_UP,
-    KEY_DOWN,
-    KEY_LEFT,
-    KEY_RIGHT,
-    'j',
-    'k',
-    'h',
-    'l',
-    KEY_PPAGE,
-    KEY_NPAGE,
-    '\0'
-};
+int offset_x = 0;
+int offset_y = 0;
 
 WINDOW *out_win;
-CDKSCREEN *out_cdk;
-CDKSCROLL *out_cdk_scroll;
-char outstr[max_file_count][max_filename_length];
+char outstr[max_file_count][max_str_len];
 char *out_items[max_file_count];
 
 WINDOW *create_wnd(int height, int width, int y, int x);
 void fill_filenames();
-void init_list_win();
 void fill_outitems();
-void init_out_win();
+void do_scroll(int ch);
+void draw_scroll(WINDOW *wnd, int offset_x, int offset_y, char **items);
+
+WINDOW *form_win;
+CDKSCREEN *form_cdk;
+CDKENTRY *pat_entry;
+CDKENTRY *rep_entry;
+CDKBUTTON *ftr_btn; // filter
+CDKBUTTON *cfm_btn; // confirm
+
+void init_form();
+
+void *focus_group[16];
+int current_focus = 0;
+int focus_group_size;
+
+void init_focus();
+void *cur_focus();
 
 int main() {
 
     initscr();
     cbreak();
     keypad(stdscr, TRUE);
-    // initCDKColor();
-
+    initCDKColor();
+    use_default_colors();
     refresh();
 
     // Check if terminal is big enough
@@ -89,43 +89,67 @@ int main() {
     form_rect.height = form_height;
 
     // create windows with borders
-    form_win = create_wnd(form_rect.height, form_rect.width, form_rect.y, form_rect.x);
+    list_win = create_wnd(list_rect.height, list_rect.width, list_rect.y, list_rect.x);
+    out_win = create_wnd(out_rect.height, out_rect.width, out_rect.y, out_rect.x);
+    fill_filenames();
+    fill_outitems();
 
-    init_list_win();
-    init_out_win();
+    init_form();
+    init_focus();
+
+    draw_scroll(list_win, offset_x, offset_y, list_items);
+    draw_scroll(out_win, offset_x, offset_y, out_items);
 
     int ch = 0;
     while(true) {
         ch = getch();
         if(ch == 'q') break;
 
-        // dispatch arrow keys to CDK
-        bool bypass = false;
-        for(int i = 0; list_win_bypass[i] != '\0'; i++) {
-            if(ch == list_win_bypass[i]) {
-                bypass = true;
-                break;
-            }
+        if (ch == KEY_TAB) {
+            current_focus += 1;
+            current_focus %= focus_group_size;
         }
-        if(bypass) {
-            injectCDKScroll(list_cdk_scroll, ch);
-            injectCDKScroll(out_cdk_scroll, ch);
 
-            // sync list scroll to out scroll
-            int selected = getCDKScrollCurrentItem(list_cdk_scroll);
-            int top = getCDKScrollCurrentTop(list_cdk_scroll);
-            // setCDKScrollCurrentItem(out_cdk_scroll, selected);
-            // setCDKScrollCurrentTop(out_cdk_scroll, top);
+        void *focus = cur_focus();
 
-            mvwprintw(form_win, 1, 1, "list_scoll: %d, top: %d", selected, top);
-            selected = getCDKScrollCurrentItem(out_cdk_scroll);
-            top = getCDKScrollCurrentTop(out_cdk_scroll);
-            mvwprintw(form_win, 2, 1, "out_scoll:  %d, top: %d", selected, top);
-            wrefresh(form_win);
-            continue;
+        // event handling and focus drawing
+        // the sequence is really important
+
+        if(focus != ftr_btn) {
+            setCDKButtonBackgroundColor(ftr_btn, "</32>");
+            drawCDKButton(ftr_btn, FALSE);
+        }
+        if(focus != cfm_btn) {
+            setCDKButtonBackgroundColor(cfm_btn, "</32>");
+            drawCDKButton(cfm_btn, FALSE);
+        }
+
+        if (focus == (void*) list_win) {
+            do_scroll(ch);
+            draw_scroll(list_win, offset_x, offset_y, list_items);
+            draw_scroll(out_win, offset_x, offset_y, out_items);
+            wmove(list_win, 0, 0);
+            wrefresh(list_win);
+        } else if (focus == (void*) pat_entry) {
+            injectCDKEntry(pat_entry, ch);
+            fill_outitems();
+            draw_scroll(out_win, offset_x, offset_y, out_items);
+            drawCDKEntry(pat_entry, FALSE); // redraw entry to update cursor position
+        } else if (focus == (void*) rep_entry) {
+            injectCDKEntry(rep_entry, ch);
+            fill_outitems();
+            draw_scroll(out_win, offset_x, offset_y, out_items);
+            drawCDKEntry(rep_entry, FALSE); // redraw entry to update cursor position
+        } else if (focus == (void*) ftr_btn) {
+            injectCDKButtonbox(ftr_btn, ch);
+            setCDKButtonBackgroundColor(ftr_btn, "</33>");
+            drawCDKButton(ftr_btn, FALSE);
+        } else if (focus == (void*) cfm_btn) {
+            injectCDKButtonbox(cfm_btn, ch);
+            setCDKButtonBackgroundColor(cfm_btn, "</33>");
+            drawCDKButton(cfm_btn, FALSE);
         }
     }
-    
 
     refresh();
     endwin();
@@ -140,90 +164,188 @@ WINDOW *create_wnd(int height, int width, int y, int x) {
 }
 
 void fill_filenames() {
-    // TODO: fill filenames
-    // here just fill it with some random strings
+    // TODO: read filenames from directory
+    // here we just fill with dummy data
 
     file_count = 40;
     for(int i = 0; i < file_count; i++) {
-        sprintf(filenames[i], "test-file-%d", i);
+        sprintf(filenames[i], "file-%d", i);
+        list_items[i] = filenames[i];
     }
-
-    // update items
-    for(int i = 0; i < file_count; i++) {
-        list_items[i] = (char*) &filenames[i];
-    }
-}
-
-void init_list_win() {
-    list_win = create_wnd(list_rect.height, list_rect.width, list_rect.y, list_rect.x);
-    fill_filenames();
-    list_cdk = initCDKScreen(list_win);
-    list_cdk_scroll = newCDKScroll(
-        list_cdk,               // CDK screen
-        LEFT,                   // align x
-        TOP,                    // align y
-        RIGHT,                  // scroll bar position
-        0,                      // 100% height
-        0,                      // 100% width
-        "Filenames",            // title
-        list_items,                  // items
-        file_count,             // item count
-        TRUE,                   // numbers
-        A_REVERSE,               // highlight
-        TRUE,                   // box
-        FALSE                   // shadow
-    );
-
-    if(list_cdk_scroll == NULL) {
-        endCDK();
-        endwin();
-        printf("Error creating list window\n");
-        exit(1);
-    }
-
-    drawCDKScroll(list_cdk_scroll, TRUE);
 }
 
 void fill_outitems() {
-    // TODO: apply regex replace on filenames
-    // here just copy filenames to outstr
+    // TODO: apply regex replace to filenames
+    // here we just copy filenames
 
     for(int i = 0; i < file_count; i++) {
-        sprintf(outstr[i], "out-%s", filenames[i]);
-    }
-
-    // update items
-    for(int i = 0; i < file_count; i++) {
-        out_items[i] = (char*) &outstr[i];
+        sprintf(outstr[i], "out %s", filenames[i]);
+        out_items[i] = outstr[i];
     }
 }
 
-void init_out_win() {
-    out_win = create_wnd(out_rect.height, out_rect.width, out_rect.y, out_rect.x);
-    fill_outitems();
-    out_cdk = initCDKScreen(out_win);
-    out_cdk_scroll = newCDKScroll(
-        out_cdk,                // CDK screen
-        LEFT,                   // align x
-        TOP,                    // align y
-        RIGHT,                  // scroll bar position
-        0,                      // 100% height
-        0,                      // 100% width
-        "Output",               // title
-        out_items,              // items
-        file_count,             // item count
-        TRUE,                   // numbers
-        A_REVERSE,               // highlight
-        TRUE,                   // box
-        FALSE                   // shadow
+void do_scroll(int ch) {
+    if (ch == KEY_DOWN) {
+        offset_y--;
+    } else if (ch == KEY_UP) {
+        offset_y++;
+    } else if (ch == KEY_LEFT) {
+        offset_x++;
+    } else if (ch == KEY_RIGHT) {
+        offset_x--;
+    } else if (ch == KEY_PPAGE) {
+        offset_y += 10;
+    } else if (ch == KEY_NPAGE) {
+        offset_y -= 10;
+    }
+
+    offset_x = min(offset_x, 0);
+    offset_y = min(offset_y, 0);
+    offset_y = max(offset_y, -file_count + 10);
+
+    int max_len = 0;
+    for(int i = 0; i < file_count; i++) {
+        max_len = max(max_len, strlen(list_items[i]));
+        max_len = max(max_len, strlen(out_items[i]));
+    }
+    offset_x = max(offset_x, -(max_len - list_rect.width + 2));
+}
+
+
+void draw_scroll(WINDOW *wnd, int offset_x, int offset_y,  char **items) {
+    wclear(wnd);
+    box(wnd, 0, 0);
+
+    int width, height;
+    getmaxyx(wnd, height, width);
+    height -= 3; // borders & status line
+    width -= 2;
+
+    // draw list
+    char buf[max_str_len];
+    int i;
+    for(i = max(0, -offset_y); i < min(file_count, -offset_y + height); i++) {
+        int item_len = strlen(items[i]);
+        int dx = 0;
+        if(offset_x > 0) dx = 0;
+        else if(item_len < width) dx = 0;
+        else if(item_len + offset_x < width) dx = item_len - width + 1;
+        else dx = - offset_x;
+
+        snprintf(
+            buf, 
+            min(width, max_str_len), 
+            "%s", 
+            items[i] + dx
+        );
+
+        mvwaddnstr(wnd, i + offset_y + 1, 1, buf, width);
+    }
+
+    // draw status line
+    int len = snprintf(buf, min(width, max_str_len), "%d / %d", i, file_count);
+    mvwaddstr(wnd, height + 1, width - len, buf);
+    wrefresh(wnd);
+}
+
+void init_form() {
+    const int button_width = 10;
+
+    // init input entry
+    form_win = create_wnd(form_rect.height, form_rect.width, form_rect.y, form_rect.x);
+    form_cdk = initCDKScreen(form_win);
+    int entry_width = form_rect.width 
+        -2              // borders
+        -button_width 
+        - 10;           // label
+    pat_entry = newCDKEntry(
+        form_cdk,           // CDK screen
+        form_rect.x + 1,    // xpos
+        form_rect.y + 1,    // ypos
+        NULL,               // title
+        "Pattern: ",        // label 
+        A_NORMAL,           // field attribute
+        '_',                // filler character
+        vMIXED,             // field type
+        entry_width,        // field width
+        0, 
+        max_str_len,                
+        FALSE, 
+        FALSE
+    );
+    rep_entry = newCDKEntry(
+        form_cdk, 
+        form_rect.x + 1, 
+        form_rect.y + 2, 
+        NULL, 
+        "Replace: ", 
+        A_NORMAL, 
+        '_', 
+        vMIXED, 
+        entry_width, 
+        0, 
+        max_str_len, 
+        FALSE, 
+        FALSE
     );
 
-    if(out_cdk_scroll == NULL) {
+    if (pat_entry == NULL || rep_entry == NULL) {
         endCDK();
         endwin();
-        printf("Error creating output window\n");
+        printf("Error creating entry fields\n");
         exit(1);
     }
 
-    drawCDKScroll(out_cdk_scroll, TRUE);
+    drawCDKEntry(pat_entry, FALSE);
+    drawCDKEntry(rep_entry, FALSE);
+
+    int btn_x = form_rect.x + 1 + entry_width + 10; // 10 for label
+    // init buttons
+    ftr_btn = newCDKButton(
+        form_cdk, 
+        btn_x, 
+        form_rect.y + 1,
+        "  Filter  ",
+        NULL,
+        FALSE,
+        FALSE
+    );
+    cfm_btn = newCDKButton(
+        form_cdk, 
+        btn_x, 
+        form_rect.y + 2,
+        "  Apply   ",
+        NULL,
+        FALSE,
+        FALSE
+    );
+
+    if (ftr_btn == NULL || cfm_btn == NULL) {
+        endCDK();
+        endwin();
+        printf("Error creating buttons\n");
+        exit(1);
+    }
+
+    init_pair(32, -1, -1); // normal
+    init_pair(33, COLOR_BLUE, -1); // highlight
+    
+    setCDKButtonBackgroundColor(ftr_btn, "</32>");
+    setCDKButtonBackgroundColor(cfm_btn, "</32>");
+
+    drawCDKButton(ftr_btn, FALSE);
+    drawCDKButton(cfm_btn, FALSE);
+}
+
+void init_focus() {
+    focus_group[0] = (void*) list_win;
+    focus_group[1] = (void*) pat_entry;
+    focus_group[2] = (void*) rep_entry;
+    focus_group[3] = (void*) ftr_btn;
+    focus_group[4] = (void*) cfm_btn;
+    focus_group_size = 5;
+}
+
+void *cur_focus(){
+    return focus_group[current_focus];
 }

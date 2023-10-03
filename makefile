@@ -8,7 +8,7 @@
 ####################################
 
 # Compiler. g++ is required to compile both C and CPP
-CXX=g++
+CXX=gcc
 
 # Options on compiling individual source file
 CFLAGS:=-g -Wall
@@ -18,7 +18,7 @@ STATIC_LIB:=
 
 # Options on linking all objects together.
 # Add dynamic libraries here, such as `-L<path/to/lib/folder> -l<libname>`
-LDFLAGS:=-lncurses -lpanel -lmenu -lform -lcdk
+LDFLAGS:=-lncurses -lpanel -lmenu -lform -lcdk -lpcre2-8
 
 # project name. it is used at packing the project
 PROJECT_NAME=c-cli-rename
