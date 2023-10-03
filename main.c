@@ -486,11 +486,16 @@ void do_filter() {
     file_count = 0;
     for(int i = 0;i < count; i++) {
         if(!out_err[i]) {
-            strcpy(filenames[file_count], filenames[i]);
-            list_items[file_count] = filenames[file_count];
+            strcpy(outstr[file_count], list_items[i]); // first copy to outstr as a buffer
             file_count++;
         }
     }
+    for(int i = 0;i < file_count;i++){
+        strcpy(filenames[i], outstr[i]); // then copy back to list_items
+        list_items[i] = filenames[i];
+    }
+
+
     fill_outitems();
 }
 
