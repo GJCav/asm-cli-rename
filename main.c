@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <dirent.h>
 #include <string.h>
 #include <memory.h>
 #include <ncurses.h>
@@ -42,6 +43,7 @@ bool mat_err = false;
 char sub_buf[max_str_len];
 
 WINDOW *create_wnd(int height, int width, int y, int x);
+int pstrcmp( const void* a, const void* b );
 void fill_filenames();
 void match(const char* subject);
 void fill_outitems();
@@ -56,6 +58,8 @@ CDKBUTTON *ftr_btn; // filter
 CDKBUTTON *cfm_btn; // confirm
 
 void init_form();
+void do_filter();
+void do_apply();
 
 void *focus_group[16];
 int current_focus = 0;
@@ -87,7 +91,7 @@ int main() {
     list_rect.x = 0;
     list_rect.y = 0;
     list_rect.width = width / 2;
-    list_rect.height = height - form_height;
+    list_rect.height = height - form_height - 1; // -1 for help line
 
     out_rect.x = list_rect.width;
     out_rect.y = 0;
@@ -98,6 +102,12 @@ int main() {
     form_rect.y = list_rect.height;
     form_rect.width = width;
     form_rect.height = form_height;
+
+    // draw help line
+    init_pair(4, COLOR_MAGENTA, -1);
+    attron(COLOR_PAIR(4));
+    mvwprintw(stdscr, height - 1, 0, "TAB to switch focus, q to quit");
+    attroff(COLOR_PAIR(4));
 
     // initialize windows, sequence is important
     list_win = create_wnd(list_rect.height, list_rect.width, list_rect.y, list_rect.x);
@@ -112,6 +122,7 @@ int main() {
 
     draw_scroll(list_win, offset_x, offset_y, list_items, NULL);
     draw_scroll(out_win, offset_x, offset_y, out_items, NULL);
+
 
     int ch = 0;
     while(true) {
@@ -156,10 +167,20 @@ int main() {
         } else if (focus == (void*) ftr_btn) {
             injectCDKButtonbox(ftr_btn, ch);
             setCDKButtonBackgroundColor(ftr_btn, "</33>");
+            if (ch == '\n') {
+                do_filter();
+                draw_scroll(list_win, offset_x, offset_y, list_items, NULL);
+                draw_scroll(out_win, offset_x, offset_y, out_items, out_err);
+            }
             drawCDKButton(ftr_btn, FALSE);
         } else if (focus == (void*) cfm_btn) {
             injectCDKButtonbox(cfm_btn, ch);
             setCDKButtonBackgroundColor(cfm_btn, "</33>");
+            if (ch == '\n') {
+                do_apply();
+                draw_scroll(list_win, offset_x, offset_y, list_items, NULL);
+                draw_scroll(out_win, offset_x, offset_y, out_items, out_err);
+            }
             drawCDKButton(cfm_btn, FALSE);
         }
     }
@@ -176,15 +197,31 @@ WINDOW *create_wnd(int height, int width, int y, int x) {
     return wnd;
 }
 
-void fill_filenames() {
-    // TODO: read filenames from directory
-    // here we just fill with dummy data
+int pstrcmp( const void* a, const void* b ) {
+  return strcmp( *(const char**)a, *(const char**)b );
+}
 
-    file_count = 40;
-    for(int i = 0; i < file_count; i++) {
-        sprintf(filenames[i], "file-%d", i);
-        list_items[i] = filenames[i];
+void fill_filenames() {
+    // read filenames from directory
+    DIR *dir;
+    struct dirent *ent;
+    dir = opendir(".");
+    if (dir == NULL) {
+        endwin();
+        printf("Error opening current directory\n");
+        exit(1);
     }
+
+    file_count = 0;
+    while ((ent = readdir(dir)) != NULL) {
+        if (ent->d_type == DT_DIR) continue;
+        strcpy(filenames[file_count], ent->d_name);
+        list_items[file_count] = filenames[file_count];
+        file_count++;
+    }
+    closedir(dir);
+
+    qsort(list_items, file_count, sizeof(list_items[0]), pstrcmp);
 }
 
 void match(const char* subject) {
@@ -250,6 +287,9 @@ void match(const char* subject) {
             char buf[max_str_len];
             pcre2_get_error_message(errnumber, buf, max_str_len);
             snprintf(sub_buf, max_str_len, "error: %s", buf);
+        } else if (len == 0) {
+            mat_err = true;
+            strcpy(sub_buf, "empty result");
         }
     }
 
@@ -262,7 +302,7 @@ void fill_outitems() {
     // here we just copy filenames
 
     for(int i = 0; i < file_count; i++) {
-        match(filenames[i]);
+        match(list_items[i]);
         out_err[i] = mat_err;
         strncpy(outstr[i], sub_buf, max_str_len);
         out_items[i] = outstr[i];
@@ -285,8 +325,8 @@ void do_scroll(int ch) {
     }
 
     offset_x = min(offset_x, 0);
-    offset_y = min(offset_y, 0);
     offset_y = max(offset_y, -file_count + 10);
+    offset_y = min(offset_y, 0);
 
     int max_len = 0;
     for(int i = 0; i < file_count; i++) {
@@ -439,4 +479,34 @@ void init_focus() {
 
 void *cur_focus(){
     return focus_group[current_focus];
+}
+
+void do_filter() {
+    int count = file_count;
+    file_count = 0;
+    for(int i = 0;i < count; i++) {
+        if(!out_err[i]) {
+            strcpy(filenames[file_count], filenames[i]);
+            list_items[file_count] = filenames[file_count];
+            file_count++;
+        }
+    }
+    fill_outitems();
+}
+
+void do_apply() {
+    // rename all file in filenames to outstr
+
+    for(int i = 0; i < file_count; i++) {
+        if(out_err[i]) continue;
+        if(strcmp(filenames[i], outstr[i]) == 0) continue;
+        if(rename(filenames[i], outstr[i]) != 0) {
+            endwin();
+            printf("Error renaming %s to %s\n", filenames[i], outstr[i]);
+            exit(1);
+        }
+    }
+
+    fill_filenames();
+    fill_outitems();
 }
