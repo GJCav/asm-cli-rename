@@ -18,7 +18,7 @@ STATIC_LIB:=
 
 # Options on linking all objects together.
 # Add dynamic libraries here, such as `-L<path/to/lib/folder> -l<libname>`
-LDFLAGS:=-lncurses -lpanel -lmenu -lform -lcdk -lpcre2-8
+LDFLAGS:=-lncurses -lpanel -lmenu -lform -Bstatic -lcdk -lpcre2-8
 
 # project name. it is used at packing the project
 PROJECT_NAME=c-cli-rename
@@ -59,6 +59,7 @@ $(TARGET): $(OUT_OBJS)
 	@$(CXX) $^ $(STATIC_LIB) -o $(TARGET) $(LDFLAGS)
 
 success:
+	ln -s -f $(shell realpath $(TARGET)) ../
 	@echo "\e[32mBUILD SUCCESS\e[0m"
 
 
