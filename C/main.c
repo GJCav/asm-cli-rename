@@ -66,7 +66,7 @@ extern void *focus_group[16];
 extern int current_focus;
 extern int focus_group_size;
 
-void init_focus();
+extern void init_focus();
 void *cur_focus();
 
 int main() {
@@ -471,14 +471,14 @@ void init_form() {
     drawCDKButton(cfm_btn, FALSE);
 }
 
-void init_focus() {
+/*void init_focus() {
     focus_group[0] = (void*) list_win;
     focus_group[1] = (void*) pat_entry;
     focus_group[2] = (void*) rep_entry;
     focus_group[3] = (void*) ftr_btn;
     focus_group[4] = (void*) cfm_btn;
     focus_group_size = 5;
-}
+}*/
 
 // void *cur_focus(){
 //     return focus_group[current_focus];
