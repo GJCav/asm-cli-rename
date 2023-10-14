@@ -200,9 +200,9 @@ int main() {
 //     return wnd;
 // }
 
-int pstrcmp( const void* a, const void* b ) {
-  return strcmp( *(const char**)a, *(const char**)b );
-}
+// int pstrcmp( const void* a, const void* b ) {
+//   return strcmp( *(const char**)a, *(const char**)b );
+// }
 
 void fill_filenames() {
     // read filenames from directory
