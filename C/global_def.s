@@ -10,7 +10,7 @@ list_rect:
 	.zero	16
 
 	.globl	out_rect
-	.align 16     
+	.align 16 
 	.type	out_rect, @object
 	.size	out_rect, 16
 out_rect:
