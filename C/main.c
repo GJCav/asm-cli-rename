@@ -71,6 +71,7 @@ void *cur_focus();
 
 int main() {
 
+
     initscr();
     cbreak();
     keypad(stdscr, TRUE);
@@ -113,6 +114,7 @@ int main() {
     // initialize windows, sequence is important
     list_win = create_wnd(list_rect.height, list_rect.width, list_rect.y, list_rect.x);
     out_win = create_wnd(out_rect.height, out_rect.width, out_rect.y, out_rect.x);
+
     init_pair(16, COLOR_RED, -1); // error color
 
     init_form();
@@ -191,12 +193,12 @@ int main() {
     return 0;
 }
 
-WINDOW *create_wnd(int height, int width, int y, int x) {
-    WINDOW *wnd = newwin(height, width, y, x);
-    box(wnd, 0, 0);
-    wrefresh(wnd);
-    return wnd;
-}
+// WINDOW *create_wnd(int height, int width, int y, int x) {
+//     WINDOW *wnd = newwin(height, width, y, x);
+//     box(wnd, 0, 0);
+//     wrefresh(wnd);
+//     return wnd;
+// }
 
 int pstrcmp( const void* a, const void* b ) {
   return strcmp( *(const char**)a, *(const char**)b );
