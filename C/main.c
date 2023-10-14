@@ -20,50 +20,51 @@
  */ 
 #define max_str_len          288  
 
-struct {
+extern struct {
     int width;
     int height;
     int y;
     int x;
 } list_rect, out_rect, form_rect;
 
-WINDOW *list_win;
-int file_count = 0;
-char filenames[max_file_count][max_str_len];
-char *list_items[max_file_count];
-int offset_x = 0;
-int offset_y = 0;
+extern WINDOW *list_win;
+extern int file_count;
+extern char filenames[max_file_count][max_str_len];
+extern char *list_items[max_file_count];
+extern int offset_x;
+extern int offset_y;
 
-WINDOW *out_win;
-char outstr[max_file_count][max_str_len];
-char *out_items[max_file_count];
-bool out_err[max_file_count];
+extern WINDOW *out_win;
+extern char outstr[max_file_count][max_str_len];
+extern char *out_items[max_file_count];
+extern bool out_err[max_file_count];
 
-bool mat_err = false;
-char sub_buf[max_str_len];
+extern bool mat_err;
+extern char sub_buf[max_str_len];
 
-WINDOW *create_wnd(int height, int width, int y, int x);
-int pstrcmp( const void* a, const void* b );
+extern WINDOW *create_wnd(int height, int width, int y, int x);
+extern int pstrcmp( const void* a, const void* b );
+
 void fill_filenames();
 void match(const char* subject);
 void fill_outitems();
 void do_scroll(int ch);
 void draw_scroll(WINDOW *wnd, int offset_x, int offset_y, char **items, bool *errs);
 
-WINDOW *form_win;
-CDKSCREEN *form_cdk;
-CDKENTRY *pat_entry;
-CDKENTRY *rep_entry;
-CDKBUTTON *ftr_btn; // filter
-CDKBUTTON *cfm_btn; // confirm
+extern WINDOW *form_win;
+extern CDKSCREEN *form_cdk;
+extern CDKENTRY *pat_entry;
+extern CDKENTRY *rep_entry;
+extern CDKBUTTON *ftr_btn; // filter
+extern CDKBUTTON *cfm_btn; // confirm
 
 void init_form();
 void do_filter();
 void do_apply();
 
-void *focus_group[16];
-int current_focus = 0;
-int focus_group_size;
+extern void *focus_group[16];
+extern int current_focus;
+extern int focus_group_size;
 
 void init_focus();
 void *cur_focus();

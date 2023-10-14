@@ -1,3 +1,4 @@
 .vscode/
 c-cli-rename
 build/
+*.copy

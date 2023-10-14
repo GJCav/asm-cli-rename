@@ -36,10 +36,12 @@ TARGET=c-cli-rename
 DIRS = $(shell find -maxdepth 3 -type d)
 SRC_CPP = $(foreach dir, $(DIRS), $(wildcard $(dir)/*.cpp))
 SRC_C = $(foreach dir, $(DIRS), $(wildcard $(dir)/*.c))
-SRC_ALL = $(SRC_C) $(SRC_CPP)
+SRC_S = $(foreach dir, $(DIRS), $(wildcard $(dir)/*.s))
+SRC_ASM_INC = $(foreach dir, $(DIRS), $(wildcard $(dir)/*.inc))
+SRC_ALL = $(SRC_C) $(SRC_CPP) $(SRC_S)
 
 OUT_DIRS = $(foreach p, $(SRC_ALL), build/$(dir $(p)))
-OBJS = $(SRC_CPP:%.cpp=%.o) $(SRC_C:%.c=%.o)
+OBJS = $(SRC_CPP:%.cpp=%.o) $(SRC_C:%.c=%.o) $(SRC_S:%.s=%.o)
 __TMP1 = $(OBJS:%=build/%)
 OUT_OBJS = $(sort $(__TMP1))
 
@@ -54,6 +56,9 @@ build/%.o : %.cpp
 
 build/%.o : %.c
 	@$(CXX) -c $< -o $@ $(CFLAGS)
+
+build/%.o : %.s $(SRC_ASM_INC)
+	$(CXX) -c $< -o $@ $(CFLAGS)
 
 $(TARGET): $(OUT_OBJS)
 	@$(CXX) $^ $(STATIC_LIB) -o $(TARGET) $(LDFLAGS)
