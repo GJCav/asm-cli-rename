@@ -480,9 +480,9 @@ void init_focus() {
     focus_group_size = 5;
 }
 
-void *cur_focus(){
-    return focus_group[current_focus];
-}
+// void *cur_focus(){
+//     return focus_group[current_focus];
+// }
 
 void do_filter() {
     int count = file_count;
