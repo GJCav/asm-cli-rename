@@ -300,17 +300,17 @@ void match(const char* subject) {
     pcre2_code_free(re);
 }
 
-void fill_outitems() {
-    // TODO: apply regex replace to filenames
-    // here we just copy filenames
+// void fill_outitems() {
+//     // TODO: apply regex replace to filenames
+//     // here we just copy filenames
 
-    for(int i = 0; i < file_count; i++) {
-        match(list_items[i]);
-        out_err[i] = mat_err;
-        strncpy(outstr[i], sub_buf, max_str_len);
-        out_items[i] = outstr[i];
-    }
-}
+//     for(int i = 0; i < file_count; i++) {
+//         match(list_items[i]);
+//         out_err[i] = mat_err;
+//         strncpy(outstr[i], sub_buf, max_str_len);
+//         out_items[i] = outstr[i];
+//     }
+// }
 
 void do_scroll(int ch) {
     if (ch == KEY_DOWN) {
