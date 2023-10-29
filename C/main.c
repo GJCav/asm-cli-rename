@@ -204,28 +204,28 @@ int main() {
 //   return strcmp( *(const char**)a, *(const char**)b );
 // }
 
-void fill_filenames() {
+//void fill_filenames() {
     // read filenames from directory
-    DIR *dir;
-    struct dirent *ent;
-    dir = opendir(".");
-    if (dir == NULL) {
-        endwin();
-        printf("Error opening current directory\n");
-        exit(1);
-    }
-
-    file_count = 0;
-    while ((ent = readdir(dir)) != NULL) {
-        if (ent->d_type == DT_DIR) continue;
-        strcpy(filenames[file_count], ent->d_name);
-        list_items[file_count] = filenames[file_count];
-        file_count++;
-    }
-    closedir(dir);
-
-    qsort(list_items, file_count, sizeof(list_items[0]), pstrcmp);
-}
+//    DIR *dir;
+//    struct dirent *ent;
+//    dir = opendir(".");
+//    if (dir == NULL) {
+//        endwin();
+//        printf("Error opening current directory\n");
+//        exit(1);
+//    }
+//
+//    file_count = 0;
+//    while ((ent = readdir(dir)) != NULL) {
+//       if (ent->d_type == DT_DIR) continue;
+//        strcpy(filenames[file_count], ent->d_name);
+//        list_items[file_count] = filenames[file_count];
+//        file_count++;
+//    }
+//    closedir(dir);
+//
+//    qsort(list_items, file_count, sizeof(list_items[0]), pstrcmp);
+//}
 
 void match(const char* subject) {
     
