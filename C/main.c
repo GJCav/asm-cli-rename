@@ -312,32 +312,32 @@ void match(const char* subject) {
 //     }
 // }
 
-void do_scroll(int ch) {
-    if (ch == KEY_DOWN) {
-        offset_y--;
-    } else if (ch == KEY_UP) {
-        offset_y++;
-    } else if (ch == KEY_LEFT) {
-        offset_x++;
-    } else if (ch == KEY_RIGHT) {
-        offset_x--;
-    } else if (ch == KEY_PPAGE) {
-        offset_y += 10;
-    } else if (ch == KEY_NPAGE) {
-        offset_y -= 10;
-    }
+//void do_scroll(int ch) {
+//    if (ch == KEY_DOWN) {
+//        offset_y--;
+//    } else if (ch == KEY_UP) {
+//        offset_y++;
+//    } else if (ch == KEY_LEFT) {
+//        offset_x++;
+//    } else if (ch == KEY_RIGHT) {
+//        offset_x--;
+//    } else if (ch == KEY_PPAGE) {
+//        offset_y += 10;
+//    } else if (ch == KEY_NPAGE) {
+//        offset_y -= 10;
+//    }
 
-    offset_x = min(offset_x, 0);
-    offset_y = max(offset_y, -file_count + 10);
-    offset_y = min(offset_y, 0);
+//    offset_x = min(offset_x, 0);
+//    offset_y = max(offset_y, -file_count + 10);
+//    offset_y = min(offset_y, 0);
 
-    int max_len = 0;
-    for(int i = 0; i < file_count; i++) {
-        max_len = max(max_len, strlen(list_items[i]));
-        max_len = max(max_len, strlen(out_items[i]));
-    }
-    offset_x = max(offset_x, -(max_len - list_rect.width + 2));
-}
+//    int max_len = 0;
+//    for(int i = 0; i < file_count; i++) {
+//        max_len = max(max_len, strlen(list_items[i]));
+//        max_len = max(max_len, strlen(out_items[i]));
+//    }
+//    offset_x = max(offset_x, -(max_len - list_rect.width + 2));
+//}
 
 
 void draw_scroll(WINDOW *wnd, int offset_x, int offset_y,  char **items, bool *errs) {
@@ -502,19 +502,19 @@ void init_form() {
 //     fill_outitems();
 //}
 
-void do_apply() {
+//void do_apply() {
     // rename all file in filenames to outstr
 
-    for(int i = 0; i < file_count; i++) {
-        if(out_err[i]) continue;
-        if(strcmp(filenames[i], outstr[i]) == 0) continue;
-        if(rename(filenames[i], outstr[i]) != 0) {
-            endwin();
-            printf("Error renaming %s to %s\n", filenames[i], outstr[i]);
-            exit(1);
-        }
-    }
+//    for(int i = 0; i < file_count; i++) {
+//      if(out_err[i]) continue;
+//        if(strcmp(filenames[i], outstr[i]) == 0) continue;
+//        if(rename(filenames[i], outstr[i]) != 0) {
+//            endwin();
+//            printf("Error renaming %s to %s\n", filenames[i], outstr[i]);
+//            exit(1);
+//        }
+//    }
 
-    fill_filenames();
-    fill_outitems();
-}
+//    fill_filenames();
+//    fill_outitems();
+//}
