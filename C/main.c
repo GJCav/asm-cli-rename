@@ -484,23 +484,23 @@ void init_form() {
 //     return focus_group[current_focus];
 // }
 
-void do_filter() {
-    int count = file_count;
-    file_count = 0;
-    for(int i = 0;i < count; i++) {
-        if(!out_err[i]) {
-            strcpy(outstr[file_count], list_items[i]); // first copy to outstr as a buffer
-            file_count++;
-        }
-    }
-    for(int i = 0;i < file_count;i++){
-        strcpy(filenames[i], outstr[i]); // then copy back to list_items
-        list_items[i] = filenames[i];
-    }
-
-
-    fill_outitems();
-}
+//void do_filter() {
+//    int count = file_count;
+//    file_count = 0;
+//    for(int i = 0;i < count; i++) {
+//        if(!out_err[i]) {
+//            strcpy(outstr[file_count], list_items[i]); // first copy to outstr as a buffer
+//            file_count++;
+//        }
+//    }
+//    for(int i = 0;i < file_count;i++){
+//        strcpy(filenames[i], outstr[i]); // then copy back to list_items
+//        list_items[i] = filenames[i];
+//    }
+//
+//
+//     fill_outitems();
+//}
 
 void do_apply() {
     // rename all file in filenames to outstr
