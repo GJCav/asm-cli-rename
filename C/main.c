@@ -69,129 +69,129 @@ extern int focus_group_size;
 extern void init_focus();
 void *cur_focus();
 
-int main() {
+//int main() {
 
 
-    initscr();
-    cbreak();
-    keypad(stdscr, TRUE);
-    initCDKColor();
-    use_default_colors();
-    refresh();
+    //initscr();
+    //cbreak();
+    //keypad(stdscr, TRUE);
+    //initCDKColor();
+    //use_default_colors();
+    //refresh();
 
     // Check if terminal is big enough
-    int width, height;
-    getmaxyx(stdscr, height, width);
-    if(width < min_width || height < min_height) {
-        endwin();
-        printf("Terminal is too small. Minimum size is %d x %d\n", min_width, min_height);
-        printf("Current size is %dx%d\n", width, height);
-        return 1;
-    }
+    //int width, height;
+    //getmaxyx(stdscr, height, width);
+    //if(width < min_width || height < min_height) {
+       //endwin();
+       // printf("Terminal is too small. Minimum size is %d x %d\n", min_width, min_height);
+       // printf("Current size is %dx%d\n", width, height);
+       // return 1;
+    //}
 
     // calculate wnd sizes
-    list_rect.x = 0;
-    list_rect.y = 0;
-    list_rect.width = width / 2;
-    list_rect.height = height - form_height - 1; // -1 for help line
+    //list_rect.x = 0;
+    //list_rect.y = 0;
+    //list_rect.width = width / 2;
+    //list_rect.height = height - form_height - 1; // -1 for help line
 
-    out_rect.x = list_rect.width;
-    out_rect.y = 0;
-    out_rect.width = width - list_rect.width;
-    out_rect.height = list_rect.height;
+    //out_rect.x = list_rect.width;
+    //out_rect.y = 0;
+    //out_rect.width = width - list_rect.width;
+    //out_rect.height = list_rect.height;
 
-    form_rect.x = 0;
-    form_rect.y = list_rect.height;
-    form_rect.width = width;
-    form_rect.height = form_height;
+    //form_rect.x = 0;
+    //form_rect.y = list_rect.height;
+    //form_rect.width = width;
+    //form_rect.height = form_height;
 
     // draw help line
-    init_pair(4, COLOR_MAGENTA, -1);
-    attron(COLOR_PAIR(4));
-    mvwprintw(stdscr, height - 1, 0, "TAB to switch focus, q to quit");
-    attroff(COLOR_PAIR(4));
+    //init_pair(4, COLOR_MAGENTA, -1);
+    //attron(COLOR_PAIR(4));
+    //mvwprintw(stdscr, height - 1, 0, "TAB to switch focus, q to quit");
+    //attroff(COLOR_PAIR(4));
 
     // initialize windows, sequence is important
-    list_win = create_wnd(list_rect.height, list_rect.width, list_rect.y, list_rect.x);
-    out_win = create_wnd(out_rect.height, out_rect.width, out_rect.y, out_rect.x);
+    //list_win = create_wnd(list_rect.height, list_rect.width, list_rect.y, list_rect.x);
+    //out_win = create_wnd(out_rect.height, out_rect.width, out_rect.y, out_rect.x);
 
-    init_pair(16, COLOR_RED, -1); // error color
+    //init_pair(16, COLOR_RED, -1); // error color
 
-    init_form();
-    init_focus();
+    //init_form();
+    //init_focus();
 
-    fill_filenames();
-    fill_outitems();
+    //fill_filenames();
+    //fill_outitems();
 
-    draw_scroll(list_win, offset_x, offset_y, list_items, NULL);
-    draw_scroll(out_win, offset_x, offset_y, out_items, NULL);
+    //draw_scroll(list_win, offset_x, offset_y, list_items, NULL);
+    //draw_scroll(out_win, offset_x, offset_y, out_items, NULL);
 
 
-    int ch = 0;
-    while(true) {
-        ch = getch();
-        if(ch == 'q') break;
+    //int ch = 0;
+    //while(true) {
+        //ch = getch();
+        //if(ch == 'q') break;
 
-        if (ch == KEY_TAB) {
-            current_focus += 1;
-            current_focus %= focus_group_size;
-        }
+        //if (ch == KEY_TAB) {
+            //current_focus += 1;
+            //current_focus %= focus_group_size;
+        //}
 
-        void *focus = cur_focus();
+        //void *focus = cur_focus();
 
         // event handling and focus drawing
         // the sequence is really important
 
-        if(focus != ftr_btn) {
-            setCDKButtonBackgroundColor(ftr_btn, "</32>");
-            drawCDKButton(ftr_btn, FALSE);
-        }
-        if(focus != cfm_btn) {
-            setCDKButtonBackgroundColor(cfm_btn, "</32>");
-            drawCDKButton(cfm_btn, FALSE);
-        }
+        //if(focus != ftr_btn) {
+            //setCDKButtonBackgroundColor(ftr_btn, "</32>");
+            //drawCDKButton(ftr_btn, FALSE);
+        //}
+        //if(focus != cfm_btn) {
+            //setCDKButtonBackgroundColor(cfm_btn, "</32>");
+            //drawCDKButton(cfm_btn, FALSE);
+        //}
 
-        if (focus == (void*) list_win) {
-            do_scroll(ch);
-            draw_scroll(list_win, offset_x, offset_y, list_items, NULL);
-            draw_scroll(out_win, offset_x, offset_y, out_items, out_err);
-            wmove(list_win, 0, 0);
-            wrefresh(list_win);
-        } else if (focus == (void*) pat_entry) {
-            injectCDKEntry(pat_entry, ch);
-            fill_outitems();
-            draw_scroll(out_win, offset_x, offset_y, out_items, out_err);
-            drawCDKEntry(pat_entry, FALSE); // redraw entry to update cursor position
-        } else if (focus == (void*) rep_entry) {
-            injectCDKEntry(rep_entry, ch);
-            fill_outitems();
-            draw_scroll(out_win, offset_x, offset_y, out_items, out_err);
-            drawCDKEntry(rep_entry, FALSE); // redraw entry to update cursor position
-        } else if (focus == (void*) ftr_btn) {
-            injectCDKButtonbox(ftr_btn, ch);
-            setCDKButtonBackgroundColor(ftr_btn, "</33>");
-            if (ch == '\n') {
-                do_filter();
-                draw_scroll(list_win, offset_x, offset_y, list_items, NULL);
-                draw_scroll(out_win, offset_x, offset_y, out_items, out_err);
-            }
-            drawCDKButton(ftr_btn, FALSE);
-        } else if (focus == (void*) cfm_btn) {
-            injectCDKButtonbox(cfm_btn, ch);
-            setCDKButtonBackgroundColor(cfm_btn, "</33>");
-            if (ch == '\n') {
-                do_apply();
-                draw_scroll(list_win, offset_x, offset_y, list_items, NULL);
-                draw_scroll(out_win, offset_x, offset_y, out_items, out_err);
-            }
-            drawCDKButton(cfm_btn, FALSE);
-        }
-    }
+        //if (focus == (void*) list_win) {
+            //do_scroll(ch);
+            //draw_scroll(list_win, offset_x, offset_y, list_items, NULL);
+            //draw_scroll(out_win, offset_x, offset_y, out_items, out_err);
+            //wmove(list_win, 0, 0);
+            //wrefresh(list_win);
+        //} else if (focus == (void*) pat_entry) {
+            //injectCDKEntry(pat_entry, ch);
+            //fill_outitems();
+            //draw_scroll(out_win, offset_x, offset_y, out_items, out_err);
+            //drawCDKEntry(pat_entry, FALSE); // redraw entry to update cursor position
+        //} else if (focus == (void*) rep_entry) {
+            //injectCDKEntry(rep_entry, ch);
+            //fill_outitems();
+            //draw_scroll(out_win, offset_x, offset_y, out_items, out_err);
+            //drawCDKEntry(rep_entry, FALSE); // redraw entry to update cursor position
+        //} else if (focus == (void*) ftr_btn) {
+            //injectCDKButtonbox(ftr_btn, ch);
+           // setCDKButtonBackgroundColor(ftr_btn, "</33>");
+            //if (ch == '\n') {
+                //do_filter();
+                //draw_scroll(list_win, offset_x, offset_y, list_items, NULL);
+                //draw_scroll(out_win, offset_x, offset_y, out_items, out_err);
+            //}
+            //drawCDKButton(ftr_btn, FALSE);
+        //} else if (focus == (void*) cfm_btn) {
+            //injectCDKButtonbox(cfm_btn, ch);
+            //setCDKButtonBackgroundColor(cfm_btn, "</33>");
+            //if (ch == '\n') {
+               // do_apply();
+                //draw_scroll(list_win, offset_x, offset_y, list_items, NULL);
+                //draw_scroll(out_win, offset_x, offset_y, out_items, out_err);
+            //}
+            //drawCDKButton(cfm_btn, FALSE);
+        //}
+    //}
 
-    refresh();
-    endwin();
-    return 0;
-}
+    //refresh();
+    //endwin();
+    //return 0;
+//}
 
 // WINDOW *create_wnd(int height, int width, int y, int x) {
 //     WINDOW *wnd = newwin(height, width, y, x);
