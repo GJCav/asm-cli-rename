@@ -340,47 +340,47 @@ void match(const char* subject) {
 //}
 
 
-void draw_scroll(WINDOW *wnd, int offset_x, int offset_y,  char **items, bool *errs) {
-    wclear(wnd);
-    box(wnd, 0, 0);
+//void draw_scroll(WINDOW *wnd, int offset_x, int offset_y,  char **items, bool *errs) {
+    //wclear(wnd);
+    //box(wnd, 0, 0);
 
-    int width, height;
-    getmaxyx(wnd, height, width);
-    height -= 3; // borders & status line
-    width -= 2;
+    //int width, height;
+    //getmaxyx(wnd, height, width);
+    //height -= 3; // borders & status line
+    //width -= 2;
 
     // draw list
-    char buf[max_str_len];
-    int i;
-    for(i = max(0, -offset_y); i < min(file_count, -offset_y + height); i++) {
-        int item_len = strlen(items[i]);
-        int dx = 0;
-        if(offset_x > 0) dx = 0;
-        else if(item_len < width) dx = 0;
-        else if(item_len + offset_x < width) dx = item_len - width + 1;
-        else dx = - offset_x;
+    //char buf[max_str_len];
+    //int i;
+    //for(i = max(0, -offset_y); i < min(file_count, -offset_y + height); i++) {
+        //int item_len = strlen(items[i]);
+        //int dx = 0;
+        //if(offset_x > 0) dx = 0;
+        //else if(item_len < width) dx = 0;
+        //else if(item_len + offset_x < width) dx = item_len - width + 1;
+        //else dx = - offset_x;
 
-        snprintf(
-            buf, 
-            min(width, max_str_len), 
-            "%s", 
-            items[i] + dx
-        );
+        //snprintf(
+            //buf, 
+            //min(width, max_str_len), 
+            //"%s", 
+            //items[i] + dx
+        //);
 
-        if(errs != NULL && errs[i]) {
-            wattron(wnd, COLOR_PAIR(16));
-        }
-        mvwaddnstr(wnd, i + offset_y + 1, 1, buf, width);
-        if(errs != NULL && errs[i]) {
-            wattroff(wnd, COLOR_PAIR(16));
-        }
-    }
+        //if(errs != NULL && errs[i]) {
+            //wattron(wnd, COLOR_PAIR(16));
+        //}
+        //mvwaddnstr(wnd, i + offset_y + 1, 1, buf, width);
+        //if(errs != NULL && errs[i]) {
+            //wattroff(wnd, COLOR_PAIR(16));
+        //}
+    //}
 
     // draw status line
-    int len = snprintf(buf, min(width, max_str_len), "%d / %d", i, file_count);
-    mvwaddstr(wnd, height + 1, width - len, buf);
-    wrefresh(wnd);
-}
+    //int len = snprintf(buf, min(width, max_str_len), "%d / %d", i, file_count);
+    //mvwaddstr(wnd, height + 1, width - len, buf);
+    //wrefresh(wnd);
+//}
 
 void init_form() {
     const int button_width = 10;
