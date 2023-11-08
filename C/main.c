@@ -227,78 +227,78 @@ void *cur_focus();
 //    qsort(list_items, file_count, sizeof(list_items[0]), pstrcmp);
 //}
 
-void match(const char* subject) {
+//void match(const char* subject) {
     
-    pcre2_code *re;
-    const char* pattern = getCDKEntryValue(pat_entry);
-    const char* replace = getCDKEntryValue(rep_entry);
+//    pcre2_code *re;
+//    const char* pattern = getCDKEntryValue(pat_entry);
+//    const char* replace = getCDKEntryValue(rep_entry);
 
-    int errnumber = 0, erroffset = 0;
-    re = pcre2_compile(
-        (PCRE2_SPTR)pattern, 
-        PCRE2_ZERO_TERMINATED, 
-        0, 
-        &errnumber, 
-        &erroffset, 
-        NULL
-    );
+//    int errnumber = 0, erroffset = 0;
+//    re = pcre2_compile(
+//        (PCRE2_SPTR)pattern, 
+//        PCRE2_ZERO_TERMINATED, 
+//        0, 
+//        &errnumber, 
+//        &erroffset, 
+//        NULL
+//    );
+//
+//    if (re == NULL) {
+//        mat_err = true;
+//        pcre2_get_error_message(errnumber, sub_buf, max_str_len);
+//        return;
+//    }
 
-    if (re == NULL) {
-        mat_err = true;
-        pcre2_get_error_message(errnumber, sub_buf, max_str_len);
-        return;
-    }
+//    pcre2_match_data *match_data;
+//    match_data = pcre2_match_data_create_from_pattern(re, NULL);
+//    int rc = 0;
+//    rc = pcre2_match(
+//        re, 
+//        (PCRE2_SPTR)subject, 
+//        PCRE2_ZERO_TERMINATED, 
+//        0, 
+//        0, 
+//        match_data, 
+//        NULL
+//    );
 
-    pcre2_match_data *match_data;
-    match_data = pcre2_match_data_create_from_pattern(re, NULL);
-    int rc = 0;
-    rc = pcre2_match(
-        re, 
-        (PCRE2_SPTR)subject, 
-        PCRE2_ZERO_TERMINATED, 
-        0, 
-        0, 
-        match_data, 
-        NULL
-    );
+//    if (rc < 0) {
+//        mat_err = true;
+//        if (rc == PCRE2_ERROR_NOMATCH) {
+//            strcpy(sub_buf, "No match");
+//        } else {
+//            char buf[max_str_len];
+//            pcre2_get_error_message(rc, buf, max_str_len);
+//            snprintf(sub_buf, max_str_len, "Matching error: %s", buf);
+//        }
+//    } else {
+//        mat_err = false;
+//        int len = max_str_len;
+//        errnumber = pcre2_substitute(
+//            re,
+//            subject,
+//            PCRE2_ZERO_TERMINATED, 0, // length, start offset
+//            0,                        // options
+//            NULL, NULL,               // match data block, context
+//            replace,
+//            PCRE2_ZERO_TERMINATED,
+//            sub_buf, &len                 // output buffer, output length
+//        );
 
-    if (rc < 0) {
-        mat_err = true;
-        if (rc == PCRE2_ERROR_NOMATCH) {
-            strcpy(sub_buf, "No match");
-        } else {
-            char buf[max_str_len];
-            pcre2_get_error_message(rc, buf, max_str_len);
-            snprintf(sub_buf, max_str_len, "Matching error: %s", buf);
-        }
-    } else {
-        mat_err = false;
-        int len = max_str_len;
-        errnumber = pcre2_substitute(
-            re,
-            subject,
-            PCRE2_ZERO_TERMINATED, 0, // length, start offset
-            0,                        // options
-            NULL, NULL,               // match data block, context
-            replace,
-            PCRE2_ZERO_TERMINATED,
-            sub_buf, &len                 // output buffer, output length
-        );
+//        if (errnumber < 0) {
+//            mat_err = true;
+//            char buf[max_str_len];
+//            pcre2_get_error_message(errnumber, buf, max_str_len);
+//            snprintf(sub_buf, max_str_len, "error: %s", buf);
+//        } else if (len == 0) {
+//            mat_err = true;
+//            strcpy(sub_buf, "empty result");
+//        }
+//    }
 
-        if (errnumber < 0) {
-            mat_err = true;
-            char buf[max_str_len];
-            pcre2_get_error_message(errnumber, buf, max_str_len);
-            snprintf(sub_buf, max_str_len, "error: %s", buf);
-        } else if (len == 0) {
-            mat_err = true;
-            strcpy(sub_buf, "empty result");
-        }
-    }
-
-    pcre2_match_data_free(match_data);
-    pcre2_code_free(re);
-}
+//    pcre2_match_data_free(match_data);
+//    pcre2_code_free(re);
+//}
 
 // void fill_outitems() {
 //     // TODO: apply regex replace to filenames
@@ -382,94 +382,94 @@ void match(const char* subject) {
     //wrefresh(wnd);
 //}
 
-void init_form() {
-    const int button_width = 10;
+//void init_form() {
+//    const int button_width = 10;
 
     // init input entry
-    form_win = create_wnd(form_rect.height, form_rect.width, form_rect.y, form_rect.x);
-    form_cdk = initCDKScreen(form_win);
-    int entry_width = form_rect.width 
-        -2              // borders
-        -button_width 
-        - 10;           // label
-    pat_entry = newCDKEntry(
-        form_cdk,           // CDK screen
-        form_rect.x + 1,    // xpos
-        form_rect.y + 1,    // ypos
-        NULL,               // title
-        "Pattern: ",        // label 
-        A_NORMAL,           // field attribute
-        '_',                // filler character
-        vMIXED,             // field type
-        entry_width,        // field width
-        0, 
-        max_str_len,                
-        FALSE, 
-        FALSE
-    );
-    rep_entry = newCDKEntry(
-        form_cdk, 
-        form_rect.x + 1, 
-        form_rect.y + 2, 
-        NULL, 
-        "Replace: ", 
-        A_NORMAL, 
-        '_', 
-        vMIXED, 
-        entry_width, 
-        0, 
-        max_str_len, 
-        FALSE, 
-        FALSE
-    );
+//    form_win = create_wnd(form_rect.height, form_rect.width, form_rect.y, form_rect.x);
+//    form_cdk = initCDKScreen(form_win);
+//    int entry_width = form_rect.width 
+//        -2              // borders
+//        -button_width 
+//        - 10;           // label
+//    pat_entry = newCDKEntry(
+//        form_cdk,           // CDK screen
+//        form_rect.x + 1,    // xpos
+//        form_rect.y + 1,    // ypos
+//        NULL,               // title
+//        "Pattern: ",        // label 
+//        A_NORMAL,           // field attribute
+//        '_',                // filler character
+//        vMIXED,             // field type
+//        entry_width,        // field width
+//        0, 
+//        max_str_len,                
+//        FALSE, 
+//        FALSE
+//    );
+//    rep_entry = newCDKEntry(
+//        form_cdk, 
+//        form_rect.x + 1, 
+//        form_rect.y + 2, 
+//        NULL, 
+//        "Replace: ", 
+//        A_NORMAL, 
+//        '_', 
+//        vMIXED, 
+//        entry_width, 
+//        0, 
+//        max_str_len, 
+//        FALSE, 
+//        FALSE
+//    );
 
-    if (pat_entry == NULL || rep_entry == NULL) {
-        endCDK();
-        endwin();
-        printf("Error creating entry fields\n");
-        exit(1);
-    }
+//    if (pat_entry == NULL || rep_entry == NULL) {
+//        endCDK();
+//        endwin();
+//        printf("Error creating entry fields\n");
+//        exit(1);
+//    }
 
-    drawCDKEntry(pat_entry, FALSE);
-    drawCDKEntry(rep_entry, FALSE);
+//    drawCDKEntry(pat_entry, FALSE);
+//    drawCDKEntry(rep_entry, FALSE);
 
-    int btn_x = form_rect.x + 1 + entry_width + 10; // 10 for label
+//    int btn_x = form_rect.x + 1 + entry_width + 10; // 10 for label
     // init buttons
-    ftr_btn = newCDKButton(
-        form_cdk, 
-        btn_x, 
-        form_rect.y + 1,
-        "  Filter  ",
-        NULL,
-        FALSE,
-        FALSE
-    );
-    cfm_btn = newCDKButton(
-        form_cdk, 
-        btn_x, 
-        form_rect.y + 2,
-        "  Apply   ",
-        NULL,
-        FALSE,
-        FALSE
-    );
+//    ftr_btn = newCDKButton(
+//        form_cdk, 
+//        btn_x, 
+//        form_rect.y + 1,
+//        "  Filter  ",
+//        NULL,
+//        FALSE,
+//        FALSE
+//    );
+//    cfm_btn = newCDKButton(
+//        form_cdk, 
+//        btn_x, 
+//        form_rect.y + 2,
+//        "  Apply   ",
+//        NULL,
+//        FALSE,
+//        FALSE
+//    );
 
-    if (ftr_btn == NULL || cfm_btn == NULL) {
-        endCDK();
-        endwin();
-        printf("Error creating buttons\n");
-        exit(1);
-    }
+//    if (ftr_btn == NULL || cfm_btn == NULL) {
+//        endCDK();
+//        endwin();
+//        printf("Error creating buttons\n");
+//        exit(1);
+//    }
 
-    init_pair(32, -1, -1); // normal
-    init_pair(33, COLOR_BLUE, -1); // highlight
+//    init_pair(32, -1, -1); // normal
+//    init_pair(33, COLOR_BLUE, -1); // highlight
     
-    setCDKButtonBackgroundColor(ftr_btn, "</32>");
-    setCDKButtonBackgroundColor(cfm_btn, "</32>");
+//    setCDKButtonBackgroundColor(ftr_btn, "</32>");
+//    setCDKButtonBackgroundColor(cfm_btn, "</32>");
 
-    drawCDKButton(ftr_btn, FALSE);
-    drawCDKButton(cfm_btn, FALSE);
-}
+//    drawCDKButton(ftr_btn, FALSE);
+//    drawCDKButton(cfm_btn, FALSE);
+//}
 
 /*void init_focus() {
     focus_group[0] = (void*) list_win;
